@@ -43,7 +43,7 @@ jobs:
           curl "https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}"
 
       - name: Notify Discord (success)
-        if: ${{ success() }}
+        if: success()
         uses: rjstone/discord-webhook-notify@v2
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
@@ -59,7 +59,7 @@ jobs:
             **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Notify Discord (tests failed)
-        if: ${{ failure() && (steps.unit_tests.outcome == 'failure' || steps.e2e_tests.outcome == 'failure') }}
+        if: failure()
         uses: rjstone/discord-webhook-notify@v2
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}

@@ -16,6 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Install dependencies 
         run: npm install  
 
@@ -26,18 +27,53 @@ jobs:
         run: npm run build
 
       - name: Test
+        id: unit_tests
         run: npm run test
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
+        id: e2e_tests
         run: npm run test:e2e
 
       - name: Trigger deployment
         if: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, '#skip') }}
         run: |
           curl "https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}"
+
+      - name: Notify Discord (success)
+        if: ${{ success() }}
+        uses: rjstone/discord-webhook-notify@v2
+        with:
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          username: CI Bot
+          severity: info
+          title: "✅ Tests passed"
+          description: |
+            **Repo:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+            **Branch:** [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})
+            **Commit:** [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          details: |
+            **Message:** ${{ github.event.pull_request.title || github.event.head_commit.message }}
+            **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Notify Discord (tests failed)
+        if: ${{ failure() && (steps.unit_tests.outcome == 'failure' || steps.e2e_tests.outcome == 'failure') }}
+        uses: rjstone/discord-webhook-notify@v2
+        with:
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          username: CI Bot
+          severity: error
+          title: "❌ Tests failed"
+          description: |
+            **Repo:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+            **Branch:** [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})
+            **Commit:** [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          details: |
+            One or more test steps failed.
+            **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            **Message:** ${{ github.event.pull_request.title || github.event.head_commit.message }}
 
   tag_release:
     needs: [simple_deployment_pipeline]

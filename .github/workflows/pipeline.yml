@@ -27,12 +27,14 @@ jobs:
         run: npm run build
 
       - name: Test
+        id: unit_tests
         run: npm run test
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
+        id: e2e_tests
         run: npm run test:e2e
 
       - name: Trigger deployment
